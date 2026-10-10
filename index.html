@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Registro de Gastos</title>
+<meta name="theme-color" content="#0f6b5c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+/* Layout: una sola columna tipo app de bolsillo — resumen de la semana arriba, formulario, lista, exportar. */
+:root {
+  --bg: #f4f5f3;
+  --card: #ffffff;
+  --ink: #17201d;
+  --ink-2: #55615c;
+  --muted: #86918c;
+  --line: #dfe3e0;
+  --accent: #0f6b5c;
+  --accent-ink: #ffffff;
+  --accent-soft: #dcefe9;
+  --warn: #b4531a;
+  --danger: #b3261e;
+  --font-ui: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-num: ui-monospace, "SF Mono", Menlo, monospace;
+  --r: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101513; --card: #18201d; --ink: #eef2f0; --ink-2: #b6c2bd; --muted: #7f8b86; --line: #2a3430;
+    --accent: #3fb59c; --accent-ink: #06231d; --accent-soft: #173a32; --warn: #e48a4f; --danger: #ef7a72;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101513; --card: #18201d; --ink: #eef2f0; --ink-2: #b6c2bd; --muted: #7f8b86; --line: #2a3430;
+  --accent: #3fb59c; --accent-ink: #06231d; --accent-soft: #173a32; --warn: #e48a4f; --danger: #ef7a72;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 16px/1.45 var(--font-ui); padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.app { max-width: 520px; margin: 0 auto; padding-inline: 16px; padding-block: 16px 40px; display: grid; gap: 14px; }
+h1 { font-size: 22px; margin: 0; font-weight: 600; letter-spacing: -0.01em; }
+h2 { font-size: 13px; margin: 0; font-weight: 600; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.06em; }
+.top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.week { color: var(--ink-2); font-size: 14px; }
+.week b { font-family: var(--font-num); color: var(--ink); font-weight: 600; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: grid; gap: 14px; min-width: 0; }
+.field { display: grid; gap: 8px; }
+.label { font-size: 14px; color: var(--ink-2); font-weight: 500; display: flex; justify-content: space-between; gap: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font: 500 15px var(--font-ui); color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 9px 14px; min-height: 42px; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.chip.add { color: var(--accent); border-style: dashed; }
+.chip:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input[type=text], input[type=date], input[type=search] { font: 16px var(--font-ui); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; width: 100%; min-width: 0; }
+.amount { display: flex; align-items: center; gap: 6px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 4px 14px; }
+.amount span { font: 600 26px var(--font-num); color: var(--muted); }
+.amount input { font: 600 32px var(--font-num); color: var(--ink); background: transparent; border: 0; width: 100%; min-width: 0; padding: 8px 0; }
+.amount input:focus { outline: none; }
+.amount:focus-within { border-color: var(--accent); }
+.date-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.date-row .when { font-weight: 600; }
+.link { background: none; border: 0; color: var(--accent); font: 500 14px var(--font-ui); padding: 4px 0; cursor: pointer; }
+.primary { font: 600 17px var(--font-ui); background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 12px; padding: 15px; min-height: 52px; cursor: pointer; width: 100%; }
+.primary:disabled { opacity: 0.45; cursor: default; }
+.secondary { font: 600 15px var(--font-ui); background: var(--accent-soft); color: var(--ink); border: 0; border-radius: 12px; padding: 13px; min-height: 48px; cursor: pointer; width: 100%; }
+.msg { font-size: 14px; color: var(--ink-2); min-height: 20px; }
+.msg.ok { color: var(--accent); }
+.msg.err { color: var(--danger); }
+.hint { font-size: 13px; color: var(--muted); }
+.new-row { display: flex; gap: 8px; }
+.new-row button { flex: none; }
+ul.list { list-style: none; margin: 0; padding: 0; display: grid; }
+ul.list li { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 11px 0; border-top: 1px solid var(--line); align-items: center; }
+ul.list li:first-child { border-top: 0; }
+.li-store { font-weight: 500; min-width: 0; overflow-wrap: anywhere; }
+.li-meta { font-size: 13px; color: var(--muted); grid-column: 1; }
+.li-amt { font: 600 16px var(--font-num); grid-row: 1; grid-column: 2; text-align: right; font-variant-numeric: tabular-nums; }
+.li-act { grid-column: 2; text-align: right; }
+.del { background: none; border: 0; color: var(--muted); font: 13px var(--font-ui); cursor: pointer; padding: 2px 0; }
+.del.confirm { color: var(--danger); font-weight: 600; }
+.badge { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--warn); }
+.total { display: flex; justify-content: space-between; font-weight: 600; padding-top: 10px; border-top: 1px solid var(--line); }
+.total b { font-family: var(--font-num); }
+.empty { color: var(--muted); font-size: 14px; padding: 6px 0; }
+.status { font-size: 13px; color: var(--muted); }
+.status.bad { color: var(--warn); }
+.steps { margin: 0; padding-left: 20px; color: var(--ink-2); font-size: 14px; display: grid; gap: 4px; }
+@media (prefers-reduced-motion: no-preference) { .chip, .primary { transition: background-color .12s, color .12s, border-color .12s; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <h1>Registro de gastos</h1>
+    <div class="week" id="week">Esta semana: <b>$0.00</b></div>
+  </div>
+  <div class="status" id="status">Conectando…</div>
+
+  <form class="card" id="form" autocomplete="off">
+    <div class="field">
+      <div class="label">Fecha</div>
+      <div class="date-row">
+        <span class="when" id="whenTxt"></span>
+        <button type="button" class="link" id="changeDate">Cambiar</button>
+        <input type="date" id="fecha" hidden>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="label"><span>Tarjeta</span></div>
+      <div class="chips" id="cards" role="group" aria-label="Tarjeta"></div>
+      <div class="new-row" id="newCardRow" hidden>
+        <input type="text" id="newCard" placeholder="Nombre de la tarjeta">
+        <button type="button" class="secondary" style="width:auto;padding:0 16px" id="addCard">Agregar</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="label"><span>Tienda o local</span></div>
+      <div class="chips" id="stores" role="group" aria-label="Tienda o local"></div>
+      <div class="new-row" id="newStoreRow" hidden>
+        <input type="text" id="newStore" placeholder="Nombre del local" list="storeList">
+        <button type="button" class="secondary" style="width:auto;padding:0 16px" id="addStore">Usar</button>
+      </div>
+      <datalist id="storeList"></datalist>
+    </div>
+
+    <div class="field">
+      <label class="label" for="monto">Monto</label>
+      <div class="amount"><span>$</span><input id="monto" inputmode="decimal" placeholder="0.00" aria-label="Monto en dólares"></div>
+    </div>
+
+    <button class="primary" id="save" type="submit" disabled>Guardar gasto</button>
+    <div class="msg" id="msg" role="status"></div>
+  </form>
+
+  <section class="card">
+    <div class="top"><h2>Por enviar</h2><span class="hint" id="pendCount"></span></div>
+    <ul class="list" id="list"></ul>
+    <div class="total" id="totalRow" hidden><span>Total</span><b id="total"></b></div>
+  </section>
+
+  <section class="card">
+    <h2>Enviar el viernes</h2>
+    <ol class="steps">
+      <li>Toca <b>Enviar por correo</b> y elige Gmail (u otra app).</li>
+      <li>Envíatelo a ti mismo.</li>
+      <li>Guárdalo en <b>Finanzas › Registros</b> y corre <b>Actualizar finanzas</b>.</li>
+    </ol>
+    <button class="secondary" type="button" id="export">Enviar por correo</button>
+    <button class="link" type="button" id="exportAll">Enviar todo el historial (respaldo)</button>
+    <div class="msg" id="expMsg" role="status"></div>
+  </section>
+</div>
+
+<script>
+const DEFAULT_CARDS = ["CIBC Costco", "Walmart MC", "Débito CIBC", "Efectivo"];
+const DEFAULT_STORES = ["Superstore", "Costco Wholesale", "Dollarama", "Shoppers Drug Mart", "Costco Gas", "Tim Hortons",
+  "El Negociante", "Pizza 64", "Carters", "FreshCo", "Walmart", "Popeyes", "Impark", "Winners", "London Drugs", "Amazon"];
+const DIAS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+
+const state = { db: null, gastos: [], extraCards: [], extraStores: [], card: null, store: null, fecha: hoy(), pendingDelete: null, online: false };
+const $ = id => document.getElementById(id);
+const money = n => "$" + n.toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function hoy() { const d = new Date(); return iso(d); }
+function iso(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
+function fechaTxt(s) { const [y, m, d] = s.split("-").map(Number); const dt = new Date(y, m - 1, d); return `${DIAS[dt.getDay()]} ${d} ${MESES[m - 1]}`; }
+function inicioSemana() { const d = new Date(); const back = (d.getDay() + 1) % 7; d.setDate(d.getDate() - back); return iso(d); } // desde el sábado
+
+// ---------- render
+function cardsAll() { return [...new Set([...DEFAULT_CARDS, ...state.extraCards])]; }
+function storesRanked() {
+  const count = {};
+  state.gastos.forEach(g => count[g.tienda] = (count[g.tienda] || 0) + 1);
+  const all = [...new Set([...state.extraStores, ...DEFAULT_STORES, ...Object.keys(count)])];
+  return all.sort((a, b) => (count[b] || 0) - (count[a] || 0) || DEFAULT_STORES.indexOf(a) - DEFAULT_STORES.indexOf(b));
+}
+function renderChips() {
+  $("cards").innerHTML = "";
+  cardsAll().forEach(c => $("cards").append(chip(c, state.card === c, () => { state.card = c; renderChips(); check(); })));
+  $("cards").append(chip("+ Otra", false, () => { $("newCardRow").hidden = false; $("newCard").focus(); }, true));
+  const ranked = storesRanked();
+  const top = ranked.slice(0, 10);
+  if (state.store && !top.includes(state.store)) top.unshift(state.store);
+  $("stores").innerHTML = "";
+  top.forEach(s => $("stores").append(chip(s, state.store === s, () => { state.store = s; renderChips(); check(); })));
+  $("stores").append(chip("+ Otro local", false, () => { $("newStoreRow").hidden = false; $("newStore").focus(); }, true));
+  $("storeList").innerHTML = ranked.map(s => `<option value="${esc(s)}">`).join("");
+}
+function chip(text, on, fn, add) {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "chip" + (add ? " add" : ""); b.textContent = text;
+  if (!add) b.setAttribute("aria-pressed", on ? "true" : "false");
+  b.onclick = fn; return b;
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function renderList() {
+  const pend = state.gastos.filter(g => !g.exportado).sort((a, b) => (b.fecha + b.creado).localeCompare(a.fecha + a.creado));
+  $("pendCount").textContent = pend.length ? `${pend.length} gasto${pend.length > 1 ? "s" : ""}` : "";
+  $("list").innerHTML = pend.length ? pend.map(g => `
+    <li data-id="${g.id}">
+      <span class="li-store">${esc(g.tienda)}</span>
+      <span class="li-amt">${money(g.monto)}</span>
+      <span class="li-meta">${fechaTxt(g.fecha)} · ${esc(g.tarjeta)}</span>
+      <span class="li-act"><button class="del ${state.pendingDelete === g.id ? "confirm" : ""}" data-del="${g.id}">${state.pendingDelete === g.id ? "¿Borrar? Toca otra vez" : "Borrar"}</button></span>
+    </li>`).join("") : `<li class="empty">No hay gastos por enviar. Registra el primero arriba.</li>`;
+  const tot = pend.reduce((a, g) => a + g.monto, 0);
+  $("totalRow").hidden = !pend.length; $("total").textContent = money(tot);
+  const ini = inicioSemana();
+  const sem = state.gastos.filter(g => g.fecha >= ini).reduce((a, g) => a + g.monto, 0);
+  $("week").innerHTML = `Desde el sábado: <b>${money(sem)}</b>`;
+  $("list").querySelectorAll("[data-del]").forEach(b => b.onclick = () => borrar(b.dataset.del));
+}
+function renderDate() { $("whenTxt").textContent = (state.fecha === hoy() ? "Hoy, " : "") + fechaTxt(state.fecha); $("fecha").value = state.fecha; }
+function parseMonto() { const v = parseFloat(String($("monto").value).replace(/[^0-9.,]/g, "").replace(",", ".")); return isFinite(v) && v > 0 ? Math.round(v * 100) / 100 : null; }
+function check() { $("save").disabled = !(state.card && state.store && parseMonto()); }
+function say(el, text, kind) { el.textContent = text; el.className = "msg" + (kind ? " " + kind : ""); }
+
+// ---------- datos (se guardan solo en este teléfono)
+const KEY = "registro_gastos_v1";
+function cargar() {
+  try {
+    const d = JSON.parse(localStorage.getItem(KEY) || "{}");
+    state.gastos = d.gastos || []; state.extraCards = d.tarjetas || []; state.extraStores = d.tiendas || [];
+    return true;
+  } catch { return false; }
+}
+function persistir() {
+  try { localStorage.setItem(KEY, JSON.stringify({ gastos: state.gastos, tarjetas: state.extraCards, tiendas: state.extraStores })); return true; }
+  catch { say($("msg"), "No se pudo guardar en el teléfono. Revisa el espacio disponible.", "err"); return false; }
+}
+async function conectar() {
+  const ok = cargar();
+  let persistente = false;
+  try { persistente = await navigator.storage?.persist?.(); } catch {}
+  $("status").textContent = ok
+    ? "Guardado solo en este teléfono" + (persistente ? " · protegido contra borrado automático" : "")
+    : "Este navegador no permite guardar datos. Instala la app desde el menú ⋮ › Agregar a pantalla de inicio.";
+  $("status").className = ok ? "status" : "status bad";
+  renderChips(); renderList(); check();
+}
+function guardarListas() { persistir(); }
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+$("form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const monto = parseMonto();
+  if (!state.card || !state.store || !monto) return;
+  const g = { id: uid(), fecha: state.fecha, tarjeta: state.card, tienda: state.store, monto, creado: new Date().toISOString(), exportado: null };
+  state.gastos.push(g);
+  if (persistir()) {
+    say($("msg"), `Guardado: ${state.store} ${money(monto)}`, "ok");
+    $("monto").value = ""; state.store = null; state.fecha = hoy(); renderDate(); renderChips(); renderList();
+  } else { state.gastos.pop(); }
+  check();
+});
+$("monto").addEventListener("input", check);
+$("changeDate").onclick = () => { $("fecha").hidden = !$("fecha").hidden; if (!$("fecha").hidden) $("fecha").focus(); };
+$("fecha").addEventListener("change", () => { if ($("fecha").value) { state.fecha = $("fecha").value; renderDate(); } });
+$("addCard").onclick = () => {
+  const v = $("newCard").value.trim(); if (!v) return;
+  if (!cardsAll().includes(v)) { state.extraCards = [...state.extraCards, v]; guardarListas(); }
+  state.card = v; $("newCard").value = ""; $("newCardRow").hidden = true; renderChips(); check();
+};
+$("addStore").onclick = () => {
+  const v = $("newStore").value.trim(); if (!v) return;
+  if (!storesRanked().includes(v)) { state.extraStores = [...state.extraStores, v]; guardarListas(); }
+  state.store = v; $("newStore").value = ""; $("newStoreRow").hidden = true; renderChips(); check();
+};
+["newCard", "newStore"].forEach(id => $(id).addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); $(id === "newCard" ? "addCard" : "addStore").click(); } }));
+
+async function borrar(id) {
+  if (state.pendingDelete !== id) { state.pendingDelete = id; renderList(); return; }
+  state.pendingDelete = null;
+  state.gastos = state.gastos.filter(g => g.id !== id);
+  persistir(); renderChips(); renderList();
+}
+
+// ---------- exportar CSV
+function csv(rows) {
+  const q = v => `"${String(v).replace(/"/g, '""')}"`;
+  return "fecha,tarjeta,tienda,monto,registrado,id\n" + rows.map(g => [g.fecha, q(g.tarjeta), q(g.tienda), g.monto.toFixed(2), g.creado, g.id].join(",")).join("\n") + "\n";
+}
+async function exportar(todo) {
+  const rows = state.gastos.filter(g => todo || !g.exportado).sort((a, b) => a.fecha.localeCompare(b.fecha));
+  if (!rows.length) { say($("expMsg"), "No hay gastos nuevos para enviar.", ""); return; }
+  const nombre = `gastos_${hoy()}${todo ? "_historial" : ""}.csv`;
+  const file = new File([csv(rows)], nombre, { type: "text/csv" });
+  let enviado = false;
+  if (navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: nombre, text: `Gastos registrados (${rows.length}) — guardar en Finanzas/Registros` });
+      enviado = true;
+    } catch (e) {
+      if (e?.name === "AbortError") { say($("expMsg"), "Envío cancelado. Los gastos siguen por enviar.", ""); return; }
+    }
+  }
+  if (!enviado) {   // sin menú de compartir: se descarga el archivo
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(file); a.download = nombre; document.body.append(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+  }
+  if (!todo) { const marca = hoy(); rows.forEach(g => g.exportado = marca); persistir(); renderList(); }
+  say($("expMsg"), enviado ? `Listo: ${nombre} con ${rows.length} gasto${rows.length > 1 ? "s" : ""}.` : `Se descargó ${nombre}. Adjúntalo a un correo para ti.`, "ok");
+}
+$("export").onclick = () => exportar(false);
+$("exportAll").onclick = () => exportar(true);
+
+renderDate(); renderChips(); renderList(); check();
+conectar();
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
+</body>
+</html>
